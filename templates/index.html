@@ -1,0 +1,460 @@
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">创建物理动画</h5>
+                </div>
+                <div class="card-body">
+                    <form id="generate-form">
+                        <!-- 物理场景选择面板 -->
+                        <div class="mb-3">
+                            <label for="physics-category" class="form-label">物理领域</label>
+                            <select class="form-select" id="physics-category" name="physics_category">
+                                <option value="general" selected>通用物理</option>
+                                <option value="mechanics">力学</option>
+                                <option value="electromagnetism">电磁学</option>
+                                <option value="thermodynamics">热力学</option>
+                                <option value="fluid">流体力学</option>
+                                <option value="quantum">量子物理</option>
+                                <option value="relativity">相对论</option>
+                                <option value="optics">光学</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 物理模板选择 -->
+                        <div class="mb-3">
+                            <label for="template-select" class="form-label">动画模板</label>
+                            <select class="form-select" id="template-select" name="template">
+                                <option value="" selected>无（自定义）</option>
+                                <option value="抛体运动">抛体运动</option>
+                                <option value="简谐振动">简谐振动</option>
+                                <option value="电场分布">电场分布</option>
+                                <option value="波动传播">波动传播</option>
+                            </select>
+                        </div>
+                        
+                        <!-- 物理参数配置面板（根据所选类别显示不同参数） -->
+                        <div id="physics-params" class="mb-3 p-3 border rounded">
+                            <h6>物理参数配置</h6>
+                            
+                            <!-- 力学参数（默认显示） -->
+                            <div id="mechanics-params">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-2">
+                                            <label for="gravity" class="form-label">重力加速度 (m/s²)</label>
+                                            <input type="number" class="form-control" id="gravity" name="gravity" value="9.81" step="0.01">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-2">
+                                            <label for="mass" class="form-label">质量 (kg)</label>
+                                            <input type="number" class="form-control" id="mass" name="mass" value="1.0" step="0.1">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-2">
+                                            <label for="velocity" class="form-label">初速度 (m/s)</label>
+                                            <input type="number" class="form-control" id="velocity" name="velocity" value="5.0" step="0.1">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-2">
+                                            <label for="angle" class="form-label">角度 (度)</label>
+                                            <input type="number" class="form-control" id="angle" name="angle" value="45" min="0" max="90">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-2">
+                                            <label for="time" class="form-label">持续时间 (s)</label>
+                                            <input type="number" class="form-control" id="time" name="time" value="5.0" step="0.1">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 其他物理领域的参数（默认隐藏） -->
+                            <div id="em-params" style="display: none;">
+                                <!-- 电磁学相关参数 -->
+                            </div>
+                            
+                            <div id="fluid-params" style="display: none;">
+                                <!-- 流体力学相关参数 -->
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">标题</label>
+                            <input type="text" class="form-control" id="title" name="title" placeholder="输入动画标题">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="prompt" class="form-label">场景描述</label>
+                            <textarea class="form-control" id="prompt" name="prompt" rows="3" placeholder="描述您想要创建的物理场景..."></textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="generate-btn">生成动画</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title">提示词设置</h5>
+                </div>
+                <div class="card-body">
+                    <div id="system-prompt-info">
+                        <p>当前提示词: <span id="current-prompt-name">加载中...</span></p>
+                        <p class="text-muted" id="current-prompt-date">更新时间: 加载中...</p>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#promptModal">管理提示词</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">快速场景</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary quick-scene" data-scene="抛体运动">抛体运动</button>
+                        <button class="btn btn-outline-primary quick-scene" data-scene="简谐振动">简谐振动</button>
+                        <button class="btn btn-outline-primary quick-scene" data-scene="电场分布">电场分布</button>
+                        <button class="btn btn-outline-primary quick-scene" data-scene="波动传播">波动传播</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 提示词管理模态框 -->
+<div class="modal fade" id="promptModal" tabindex="-1" aria-labelledby="promptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="promptModalLabel">管理系统提示词</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="promptTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">通用</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="mechanics-tab" data-bs-toggle="tab" data-bs-target="#mechanics" type="button" role="tab" aria-controls="mechanics" aria-selected="false">力学</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="em-tab" data-bs-toggle="tab" data-bs-target="#em" type="button" role="tab" aria-controls="em" aria-selected="false">电磁学</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="fluid-tab" data-bs-toggle="tab" data-bs-target="#fluid" type="button" role="tab" aria-controls="fluid" aria-selected="false">流体</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="quantum-tab" data-bs-toggle="tab" data-bs-target="#quantum" type="button" role="tab" aria-controls="quantum" aria-selected="false">量子</button>
+                    </li>
+                </ul>
+                <div class="tab-content p-3" id="promptTabContent">
+                    <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+                        <div id="general-prompts" class="prompt-list">加载中...</div>
+                    </div>
+                    <div class="tab-pane fade" id="mechanics" role="tabpanel" aria-labelledby="mechanics-tab">
+                        <div id="mechanics-prompts" class="prompt-list">加载中...</div>
+                    </div>
+                    <div class="tab-pane fade" id="em" role="tabpanel" aria-labelledby="em-tab">
+                        <div id="em-prompts" class="prompt-list">加载中...</div>
+                    </div>
+                    <div class="tab-pane fade" id="fluid" role="tabpanel" aria-labelledby="fluid-tab">
+                        <div id="fluid-prompts" class="prompt-list">加载中...</div>
+                    </div>
+                    <div class="tab-pane fade" id="quantum" role="tabpanel" aria-labelledby="quantum-tab">
+                        <div id="quantum-prompts" class="prompt-list">加载中...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 添加动态显示物理参数配置的功能
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取元素
+    const categorySelect = document.getElementById('physics-category');
+    const templateSelect = document.getElementById('template-select');
+    const mechanicsParams = document.getElementById('mechanics-params');
+    const emParams = document.getElementById('em-params');
+    const fluidParams = document.getElementById('fluid-params');
+    const promptTextarea = document.getElementById('prompt');
+    const quickSceneButtons = document.querySelectorAll('.quick-scene');
+    
+    // 根据选择的物理领域显示相应的参数
+    categorySelect.addEventListener('change', function() {
+        const category = this.value;
+        
+        // 隐藏所有参数区域
+        mechanicsParams.style.display = 'none';
+        emParams.style.display = 'none';
+        fluidParams.style.display = 'none';
+        
+        // 显示对应类别的参数
+        switch(category) {
+            case 'mechanics':
+                mechanicsParams.style.display = 'block';
+                break;
+            case 'electromagnetism':
+                emParams.style.display = 'block';
+                break;
+            case 'fluid':
+                fluidParams.style.display = 'block';
+                break;
+            default:
+                mechanicsParams.style.display = 'block'; // 默认显示力学参数
+        }
+    });
+    
+    // 根据选择的模板预填充场景描述
+    templateSelect.addEventListener('change', function() {
+        const template = this.value;
+        
+        switch(template) {
+            case '抛体运动':
+                promptTextarea.value = '创建一个抛体运动的动画，展示一个物体从左侧以一定角度和初速度发射，在重力作用下的运动轨迹。';
+                // 设置对应的物理参数
+                document.getElementById('physics-category').value = 'mechanics';
+                document.getElementById('gravity').value = '9.81';
+                document.getElementById('velocity').value = '10';
+                document.getElementById('angle').value = '45';
+                document.getElementById('time').value = '3.0';
+                // 触发类别变更事件
+                categorySelect.dispatchEvent(new Event('change'));
+                break;
+            case '简谐振动':
+                promptTextarea.value = '创建一个弹簧-质量系统的简谐振动动画，展示振动过程中的位移、速度和加速度变化。';
+                document.getElementById('physics-category').value = 'mechanics';
+                categorySelect.dispatchEvent(new Event('change'));
+                break;
+            case '电场分布':
+                promptTextarea.value = '创建一个展示两个带电粒子周围电场分布的动画，一个带正电，一个带负电。';
+                document.getElementById('physics-category').value = 'electromagnetism';
+                categorySelect.dispatchEvent(new Event('change'));
+                break;
+            case '波动传播':
+                promptTextarea.value = '创建一个波的传播动画，展示波的振幅、波长、频率等特性，并演示波的干涉现象。';
+                document.getElementById('physics-category').value = 'general';
+                categorySelect.dispatchEvent(new Event('change'));
+                break;
+        }
+    });
+    
+    // 快速场景按钮功能
+    quickSceneButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const scene = this.getAttribute('data-scene');
+            // 设置模板选择并触发change事件
+            templateSelect.value = scene;
+            templateSelect.dispatchEvent(new Event('change'));
+        });
+    });
+    
+    // 加载提示词列表
+    function loadSystemPrompts() {
+        fetch('/api/system-prompts/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 根据类别分组提示词
+                    const promptsByCategory = {};
+                    data.prompts.forEach(prompt => {
+                        if (!promptsByCategory[prompt.category]) {
+                            promptsByCategory[prompt.category] = [];
+                        }
+                        promptsByCategory[prompt.category].push(prompt);
+                    });
+                    
+                    // 更新各类别的提示词列表
+                    updatePromptList('general-prompts', promptsByCategory.general || []);
+                    updatePromptList('mechanics-prompts', promptsByCategory.mechanics || []);
+                    updatePromptList('em-prompts', promptsByCategory.electromagnetism || []);
+                    updatePromptList('fluid-prompts', promptsByCategory.fluid || []);
+                    updatePromptList('quantum-prompts', promptsByCategory.quantum || []);
+                }
+            })
+            .catch(error => console.error('Error fetching system prompts:', error));
+    }
+    
+    // 更新提示词列表
+    function updatePromptList(containerId, prompts) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        if (prompts.length === 0) {
+            container.innerHTML = '<p class="text-muted">该分类没有提示词</p>';
+            return;
+        }
+        
+        let html = '<div class="list-group">';
+        prompts.forEach(prompt => {
+            const activeClass = prompt.is_active ? 'active' : '';
+            html += `
+                <div class="list-group-item ${activeClass}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">${prompt.name}</h6>
+                        <small>${prompt.updated_at}</small>
+                    </div>
+                    <p class="mb-1 prompt-content">${prompt.content.substring(0, 100)}...</p>
+                    <button class="btn btn-sm ${prompt.is_active ? 'btn-success' : 'btn-outline-primary'} toggle-prompt" 
+                            data-prompt-id="${prompt.id}">
+                        ${prompt.is_active ? '当前激活' : '激活'}
+                    </button>
+                </div>
+            `;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+        
+        // 添加激活提示词的事件处理
+        container.querySelectorAll('.toggle-prompt').forEach(button => {
+            button.addEventListener('click', function() {
+                const promptId = this.getAttribute('data-prompt-id');
+                toggleSystemPrompt(promptId);
+            });
+        });
+    }
+    
+    // 切换系统提示词
+    function toggleSystemPrompt(promptId) {
+        fetch(`/api/system-prompts/${promptId}/toggle/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // 重新加载提示词列表
+                loadSystemPrompts();
+                // 更新当前提示词信息
+                loadActiveSystemPrompt();
+            } else {
+                alert('激活提示词失败: ' + data.message);
+            }
+        })
+        .catch(error => console.error('Error toggling system prompt:', error));
+    }
+    
+    // 加载当前激活的系统提示词
+    function loadActiveSystemPrompt() {
+        fetch('/api/system-prompts/active/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('current-prompt-name').textContent = data.prompt.name;
+                    document.getElementById('current-prompt-date').textContent = '更新时间: ' + data.prompt.updated_at;
+                } else {
+                    document.getElementById('current-prompt-name').textContent = '未设置';
+                    document.getElementById('current-prompt-date').textContent = '';
+                }
+            })
+            .catch(error => console.error('Error fetching active system prompt:', error));
+    }
+    
+    // 获取CSRF Token
+    function getCSRFToken() {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'csrftoken') {
+                return value;
+            }
+        }
+        return '';
+    }
+    
+    // 生成动画表单提交
+    document.getElementById('generate-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        const generateBtn = document.getElementById('generate-btn');
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 正在生成...';
+        
+        // 构建包含物理参数的提示词
+        const category = document.getElementById('physics-category').value;
+        const basePrompt = document.getElementById('prompt').value;
+        let enhancedPrompt = basePrompt;
+        
+        // 根据物理领域添加参数
+        if (category === 'mechanics') {
+            const gravity = document.getElementById('gravity').value;
+            const mass = document.getElementById('mass').value;
+            const velocity = document.getElementById('velocity').value;
+            const angle = document.getElementById('angle').value;
+            const time = document.getElementById('time').value;
+            
+            enhancedPrompt += `\n\n物理参数：
+- 重力加速度: ${gravity} m/s²
+- 质量: ${mass} kg
+- 初速度: ${velocity} m/s
+- 角度: ${angle} 度
+- 持续时间: ${time} s`;
+        }
+        
+        // 准备提交数据
+        const formData = {
+            title: document.getElementById('title').value || '未命名动画',
+            prompt: enhancedPrompt,
+            physics_category: category
+        };
+        
+        // 发送请求生成动画
+        fetch('/api/generate-animation/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '生成动画';
+            
+            if (data.id) {
+                // 生成成功，跳转到动画详情页
+                window.location.href = `/animations/${data.id}/`;
+            } else {
+                alert('生成动画失败: ' + (data.error || '未知错误'));
+            }
+        })
+        .catch(error => {
+            console.error('Error generating animation:', error);
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '生成动画';
+            alert('生成动画时发生错误，请稍后重试');
+        });
+    });
+    
+    // 初始化
+    loadSystemPrompts();
+    loadActiveSystemPrompt();
+    // 默认显示力学参数
+    categorySelect.dispatchEvent(new Event('change'));
+});
+</script> 

@@ -9,4 +9,6 @@ urlpatterns = [
     path('system-prompts/add/', views.add_system_prompt, name='add_system_prompt'),
     path('system-prompts/<int:prompt_id>/toggle/', views.toggle_system_prompt, name='toggle_system_prompt'),
     path('system-prompts/active/', views.get_active_system_prompt, name='get_active_system_prompt'),
+    path('system-prompts/category/<str:category>/', views.get_prompts_by_category, name='get_prompts_by_category'),
+    path('physics-templates/<str:template_name>/', views.get_physics_template_api, name='get_physics_template'),
 ] 
