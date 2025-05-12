@@ -1,6 +1,14 @@
 {% extends "admin/app_index.html" %}
 {% load i18n %}
- 
+
 {% block sidebar %}
 {{ block.super }}
+<div class="module" style="margin-top: 20px;">
+    <h2>系统导航</h2>
+    <ul>
+        <li><a href="/">首页</a></li>
+        <li><a href="/animations/">我的动画</a></li>
+        <li><a href="/api/system-prompts/">系统提示词管理</a></li>
+    </ul>
+</div>
 {% endblock %} 

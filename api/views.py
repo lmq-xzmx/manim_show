@@ -101,6 +101,7 @@ def generate_manim_code_from_llm(prompt):
 6. 对于需要LaTeX渲染的内容，使用 MathTex 和 Tex 类
 7. 确保所有参数传递正确，每个函数只接受其预期的参数
 8. 确保每个动画创建的代码都是完整且可运行的
+9. 永远先定义变量再使用，避免出现变量未定义错误
 """
     
     # 如果数据库中有活跃提示词，使用它替换默认值
@@ -121,132 +122,145 @@ def generate_manim_code_from_llm(prompt):
 4. 确保动画逻辑正确
 5. 符合PEP 8编码规范
 6. 不要增加额外的解释或注释
+7. 所有变量在使用前必须先声明和定义
 """
     
-    # 根据API端点自动判断使用哪种API格式
-    if 'openai.com' in endpoint:
-        # OpenAI API格式
-        data = {
-            "model": "gpt-3.5-turbo",
-            "messages": [
-                {"role": "system", "content": enhanced_system_prompt},
-                {"role": "user", "content": enhanced_user_prompt}
-            ],
-            "max_tokens": 1000,
-            "temperature": 0.2,
-        }
-        
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-    elif 'bigmodel.cn' in endpoint:
-        # 智谱AI API格式
-        print(f"使用智谱AI API: {endpoint}")
-        
-        data = {
-            "model": "glm-4",  # 使用智谱AI的模型名称
-            "messages": [
-                {"role": "system", "content": enhanced_system_prompt},
-                {"role": "user", "content": enhanced_user_prompt}
-            ],
-            "temperature": 0.2,
-        }
-        
-        headers = {
-            "Authorization": api_key,  # 智谱AI不需要"Bearer "前缀
-            "Content-Type": "application/json"
-        }
-    else:
-        # 默认格式 (假设通用格式)
-        data = {
-            "prompt": f"{enhanced_system_prompt}\n\n{enhanced_user_prompt}",
-            "max_tokens": 1000,
-            "temperature": 0.2,
-        }
-        
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+    # 设置API请求参数
+    api_data = {
+        "model": "glm-4",  # 使用GLM-4模型
+        "messages": [
+            {"role": "system", "content": enhanced_system_prompt},
+            {"role": "user", "content": enhanced_user_prompt}
+        ],
+        "temperature": 0.3,  # 降低温度使生成更加确定性
+        "max_tokens": 2000
+    }
     
-    try:
-        # 添加调试信息
-        print(f"发送API请求到: {endpoint}")
-        print(f"请求头: {headers}")
-        print(f"请求体(部分): {str(data)[:200]}...")
-        
-        # 添加超时以避免长时间等待
-        response = requests.post(endpoint, json=data, headers=headers, timeout=15)
-        
-        # 打印响应状态和部分响应内容
-        print(f"API响应状态码: {response.status_code}")
-        print(f"API响应内容(部分): {response.text[:200]}..." if response.text else "空响应")
-        
-        response.raise_for_status()
-        
-        # 根据API响应格式处理结果
-        result = response.json()
-        manim_code = ""
-        
-        # 智谱AI格式响应处理
-        if 'bigmodel.cn' in endpoint:
-            if 'choices' in result and result['choices']:
-                choice = result['choices'][0]
-                if 'message' in choice and 'content' in choice['message']:
-                    manim_code = choice['message']['content']
-        # OpenAI格式响应处理
-        elif 'choices' in result:
-            choices = result.get('choices', [])
-            if choices and len(choices) > 0:
-                if 'message' in choices[0]:
-                    manim_code = choices[0]['message']['content']
-                elif 'text' in choices[0]:
-                    manim_code = choices[0]['text']
-        # 通用格式处理
-        else:
-            manim_code = result.get("generated_code", "")
-            if not manim_code:
-                manim_code = result.get("output", "")
-        
-        # 确保代码可执行
-        if not manim_code or "from manim import" not in manim_code:
-            if not manim_code:
-                print("API返回的代码为空")
-            else:
-                print(f"API返回内容不包含Manim导入语句: {manim_code[:100]}...")
-                
-            manim_code = "from manim import *\n\n" + (manim_code or f"""
-class SimpleScene(Scene):
-    def construct(self):
-        # 创建标题
-        title = Text("{prompt[:30]}...", font_size=36)
-        title.to_edge(UP)
-        self.play(Write(title))
-        self.wait(1)
-        
-        # 显示提示词
-        prompt_text = Text("提示词太复杂，无法生成代码", font_size=24, color=RED)
-        prompt_text.next_to(title, DOWN, buff=1)
-        self.play(FadeIn(prompt_text))
-        self.wait(2)
-        
-        # 淡出
-        self.play(FadeOut(title), FadeOut(prompt_text))
-        self.wait(1)
-""")
+    headers = {
+        "Authorization": api_key,
+        "Content-Type": "application/json"
+    }
+    
+    print(f"使用智谱AI API: {endpoint}")
+    print(f"发送API请求到: {endpoint}")
+    print(f"请求头: {headers}")
+    
+    # 只打印部分请求体，避免日志过长
+    print(f"请求体(部分): {str(api_data)[:100]}...")
+    # 每次输出一点，避免日志过长
+    for i in range(0, len(str(api_data)), 100):
+        end = min(i + 100, len(str(api_data)))
+        print(f"请求体(部分): {str(api_data)[i:end]}...")
+    
+    # 添加重试机制
+    max_retries = 3
+    retry_delay = 2  # 初始延迟2秒
+    
+    for attempt in range(max_retries):
+        try:
+            # 增加超时设置
+            response = requests.post(
+                endpoint, 
+                json=api_data, 
+                headers=headers, 
+                timeout=30  # 将超时时间从15秒增加到30秒
+            )
             
-        return manim_code
-    except Exception as e:
-        print(f"调用大模型API时出错: {e}")
-        print(f"错误类型: {type(e).__name__}")
-        if isinstance(e, requests.exceptions.RequestException):
-            print(f"请求异常: {e}")
-            if hasattr(e, 'response') and e.response:
-                print(f"响应状态: {e.response.status_code}")
-                print(f"响应内容: {e.response.text[:500]}")
-        # 出错时返回一个基本的示例代码
-        return generate_sample_manim_code(prompt)
+            print(f"API响应状态码: {response.status_code}")
+            
+            # 只打印部分响应内容，避免日志过长
+            print(f"API响应内容(部分): {str(response.text)[:100]}...")
+            for i in range(0, len(str(response.text)), 100):
+                end = min(i + 100, len(str(response.text)))
+                print(f"API响应内容(部分): {str(response.text)[i:end]}...")
+            
+            if response.status_code == 200:
+                response_data = response.json()
+                generated_code = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                
+                if generated_code:
+                    return generated_code
+                else:
+                    print("API返回成功但未包含生成的代码")
+                    if attempt < max_retries - 1:
+                        print(f"尝试重新请求 (尝试 {attempt+1}/{max_retries})")
+                        time.sleep(retry_delay)
+                        retry_delay *= 2  # 指数退避
+                        continue
+                    return generate_sample_manim_code(prompt)
+            else:
+                print(f"API请求失败，状态码: {response.status_code}")
+                # 检查是否有详细错误信息
+                try:
+                    error_detail = response.json()
+                    print(f"错误详情: {error_detail}")
+                except:
+                    print(f"错误响应: {response.text}")
+                
+                if attempt < max_retries - 1:
+                    print(f"尝试重新请求 (尝试 {attempt+1}/{max_retries})")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # 指数退避
+                    continue
+                return generate_sample_manim_code(prompt)
+                
+        except requests.exceptions.ReadTimeout as e:
+            print(f"调用大模型API时出错: {str(e)}")
+            print(f"错误类型: {type(e).__name__}")
+            print(f"请求异常: {str(e)}")
+            
+            if attempt < max_retries - 1:
+                print(f"API超时，重试中... (尝试 {attempt+1}/{max_retries})")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # 指数退避
+                continue
+            
+            # 尝试使用备选的更简化请求
+            try:
+                print("尝试使用简化请求...")
+                # 简化系统提示和用户提示
+                simplified_data = {
+                    "model": "glm-4",
+                    "messages": [
+                        {"role": "system", "content": "请生成简单的Manim代码，确保定义所有变量后再使用。"},
+                        {"role": "user", "content": f"创建一个Manim动画：{prompt}"}
+                    ],
+                    "temperature": 0.2,
+                    "max_tokens": 1000
+                }
+                
+                response = requests.post(
+                    endpoint, 
+                    json=simplified_data, 
+                    headers=headers, 
+                    timeout=20
+                )
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    generated_code = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    if generated_code:
+                        print("使用简化请求成功获取代码")
+                        return generated_code
+                
+                print("简化请求也失败，使用示例代码")
+            except Exception as inner_e:
+                print(f"简化请求也失败: {str(inner_e)}")
+            
+            return generate_sample_manim_code(prompt)
+            
+        except Exception as e:
+            print(f"调用大模型API时出错: {str(e)}")
+            print(f"错误类型: {type(e).__name__}")
+            print(traceback.format_exc())
+            
+            if attempt < max_retries - 1:
+                print(f"尝试重新请求 (尝试 {attempt+1}/{max_retries})")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # 指数退避
+                continue
+            
+            return generate_sample_manim_code(prompt)
 
 def generate_sample_manim_code(prompt):
     """生成示例Manim代码（在实际项目中将被大模型API替代）"""
@@ -320,7 +334,7 @@ def execute_manim_code(manim_code, animation_id):
         output_path = os.path.join('animations', output_file_name)
         full_output_path = os.path.join(media_dir, output_path)
         
-        # 清理代码，移除非Python内容
+        # 清理代码，移除非Python内容并验证代码
         cleaned_code = clean_manim_code(manim_code)
         
         # 写入Manim代码到文件
@@ -427,13 +441,64 @@ def execute_manim_code(manim_code, animation_id):
             
             # 尝试分析错误输出以提供更具体的错误信息
             error_message = "Manim执行失败"
-            if "ModuleNotFoundError" in e.stderr:
-                error_message = "缺少所需模块: " + e.stderr.split("ModuleNotFoundError:")[1].split("\n")[0].strip()
-            elif "SyntaxError" in e.stderr:
-                error_message = "代码语法错误: " + e.stderr.split("SyntaxError:")[1].split("\n")[0].strip()
+            error_details = "未知错误"
             
-            return _create_fallback_video(animation_id, animations_dir, output_path, full_output_path,
-                                        error_message=error_message)
+            # 常见错误类型的检测和修复
+            if "NameError: name" in e.stderr:
+                # 变量未定义错误
+                var_match = re.search(r"NameError: name '(\w+)' is not defined", e.stderr)
+                if var_match:
+                    var_name = var_match.group(1)
+                    error_message = f"变量未定义: {var_name}"
+                    error_details = f"在使用变量 {var_name} 前需要先定义它"
+                    
+                    # 尝试自动修复代码
+                    print(f"尝试自动修复未定义变量: {var_name}")
+                    # 检查是否有备份文件可用
+                    autofix_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../autofix.py")
+                    if os.path.exists(autofix_file):
+                        fix_cmd = ["python", autofix_file, file_path]
+                        try:
+                            subprocess.run(fix_cmd, check=True, timeout=30)
+                            print(f"autofix.py成功修复了文件 {file_path}")
+                            # 再次尝试执行
+                            return execute_manim_code(open(file_path, 'r', encoding='utf-8').read(), animation_id)
+                        except Exception as fix_err:
+                            print(f"自动修复失败: {fix_err}")
+            
+            elif "SyntaxError" in e.stderr:
+                # 语法错误
+                syntax_match = re.search(r"SyntaxError: (.*)", e.stderr)
+                if syntax_match:
+                    syntax_error = syntax_match.group(1)
+                    error_message = f"语法错误: {syntax_error}"
+                    error_details = "代码中存在语法错误，需要修正"
+            
+            elif "ModuleNotFoundError" in e.stderr:
+                # 模块未找到错误
+                module_match = re.search(r"ModuleNotFoundError: No module named '(.*)'", e.stderr)
+                if module_match:
+                    module_name = module_match.group(1)
+                    error_message = f"缺少模块: {module_name}"
+                    error_details = f"需要安装缺少的模块: pip install {module_name}"
+                    
+            elif "TypeError" in e.stderr:
+                # 类型错误
+                type_match = re.search(r"TypeError: (.*)", e.stderr)
+                if type_match:
+                    type_error = type_match.group(1)
+                    error_message = f"类型错误: {type_error}"
+                    error_details = "函数参数类型不匹配，请检查函数调用"
+            
+            # 创建带有详细错误信息的备选视频
+            return _create_fallback_video(
+                animation_id, 
+                animations_dir, 
+                output_path, 
+                full_output_path,
+                error_message=error_message,
+                error_details=error_details
+            )
         
         except subprocess.TimeoutExpired:
             print(f"Manim命令执行超时（超过120秒）")
@@ -452,67 +517,134 @@ def execute_manim_code(manim_code, animation_id):
         return None
 
 def clean_manim_code(code):
-    """
-    清理Manim代码，移除所有非Python内容
-    包括Markdown代码块标记、注释和其他非合法Python代码
-    """
-    # 移除开头的 ```python 或 ``` 标记
-    code = re.sub(r'^```(?:python)?\s*\n', '', code, flags=re.MULTILINE)
+    """清理和验证Manim代码，确保它可以运行"""
+    # 移除代码块标记
+    cleaned_code = code
     
-    # 移除结尾的 ``` 标记及之后的所有内容
-    code = re.sub(r'```[\s\S]*$', '', code)
+    # 如果代码包含markdown代码块，提取其中的代码部分
+    if "```python" in code:
+        parts = code.split("```python", 1)
+        if len(parts) > 1:
+            code_part = parts[1]
+            if "```" in code_part:
+                cleaned_code = code_part.split("```", 1)[0]
+            else:
+                cleaned_code = code_part
+    elif "```" in code:
+        parts = code.split("```", 1)
+        if len(parts) > 1:
+            code_part = parts[1]
+            if "```" in code_part:
+                cleaned_code = code_part.split("```", 1)[0]
+            else:
+                cleaned_code = code_part
     
-    # 提取实际的Python代码部分
-    # 识别Python类定义开始的位置
-    class_match = re.search(r'from\s+manim\s+import', code)
-    if class_match:
-        # 从import开始
-        start_pos = class_match.start()
-        code = code[start_pos:]
+    # 移除空行并计算代码总行数
+    non_empty_lines = [line for line in cleaned_code.split('\n') if line.strip()]
+    print(f"代码清理后的行数: {len(non_empty_lines)}")
     
-    # 识别代码结束位置（通常是最后一个类方法的结束）
-    # 先找到最后一个self.play或self.wait调用
-    last_method_match = re.search(r'self\.(play|wait)(?:[^)]*\))[^)]*$', code, re.DOTALL)
-    if last_method_match:
-        # 从这个位置找到下一个右括号，作为结束位置
-        method_pos = last_method_match.end()
-        # 寻找这之后的第一个非代码行（空行、注释或英文句号等）
-        non_code_match = re.search(r'\n\s*(?:#|$|注意|Note)', code[method_pos:])
-        if non_code_match:
-            end_pos = method_pos + non_code_match.start()
-            code = code[:end_pos]
+    # 基本语法检查和变量验证
+    validate_result = validate_manim_code(cleaned_code)
+    if not validate_result["valid"]:
+        print(f"代码验证警告: {validate_result['message']}")
+        cleaned_code = fix_common_code_issues(cleaned_code, validate_result["issues"])
     
-    # 按行处理，移除包含中文字符的行（可能是注释）
-    lines = code.split('\n')
-    cleaned_lines = []
-    for line in lines:
-        # 检查行中是否包含中文字符
-        if re.search(r'[\u4e00-\u9fff]', line):
-            continue
-        # 检查行中是否包含其他非法Python字符
-        if re.search(r'[^\x00-\x7F]+', line):
-            # 只保留ASCII字符
-            line = re.sub(r'[^\x00-\x7F]+', '', line)
-        cleaned_lines.append(line)
-    
-    # 重新组合代码
-    cleaned_code = '\n'.join(cleaned_lines)
-    
-    # 确保代码以换行符结束
-    if not cleaned_code.endswith('\n'):
-        cleaned_code += '\n'
-    
-    # 添加避免LaTeX渲染问题的修复
-    # 替换MathTex为Text，避免使用LaTeX渲染
-    cleaned_code = re.sub(r'MathTex\(r"([^"]+)"\)', r'Text(r"\1")', cleaned_code)
-    cleaned_code = re.sub(r'MathTex\(r\'([^\']+)\'\)', r'Text(r"\1")', cleaned_code)
-    cleaned_code = re.sub(r'Tex\(r"([^"]+)"\)', r'Text(r"\1")', cleaned_code)
-    cleaned_code = re.sub(r'Tex\(r\'([^\']+)\'\)', r'Text(r"\1")', cleaned_code)
-    
-    print(f"代码清理后的行数: {len(cleaned_lines)}")
     return cleaned_code
 
-def _create_fallback_video(animation_id, animations_dir, output_path, full_output_path, error_message="执行失败"):
+def validate_manim_code(code):
+    """验证Manim代码是否存在常见问题"""
+    issues = []
+    result = {"valid": True, "message": "", "issues": issues}
+    
+    # 检查基本语法，尝试编译代码
+    try:
+        compile(code, '<string>', 'exec')
+    except SyntaxError as e:
+        result["valid"] = False
+        result["message"] = f"语法错误: {str(e)}"
+        issues.append({"type": "syntax", "message": str(e)})
+        return result
+    
+    # 检查常见的变量使用问题
+    lines = code.split('\n')
+    defined_vars = set()
+    scene_class_found = False
+    construct_method_found = False
+    
+    for i, line in enumerate(lines):
+        # 检测是否定义了Scene类
+        if "class" in line and "Scene" in line:
+            scene_class_found = True
+            continue
+            
+        # 检测是否有construct方法
+        if scene_class_found and "def construct" in line:
+            construct_method_found = True
+            continue
+            
+        # 在construct方法中收集变量定义
+        if construct_method_found:
+            if "=" in line:
+                var_name = line.split("=")[0].strip()
+                if var_name and not var_name.startswith(("self.", "#")) and " " not in var_name:
+                    defined_vars.add(var_name)
+            
+            # 检查是否使用了未定义的常见变量
+            stripped_line = line.strip()
+            if stripped_line and not stripped_line.startswith("#"):
+                for common_var in ["title", "equation", "text", "formula", "graph"]:
+                    # 排除赋值和函数定义的情况
+                    if common_var in line and "=" not in line and "def " not in line:
+                        if common_var not in defined_vars and "self." + common_var not in line:
+                            issues.append({
+                                "type": "undefined_var", 
+                                "line": i+1, 
+                                "var": common_var,
+                                "content": line
+                            })
+    
+    if len(issues) > 0:
+        result["valid"] = False
+        result["message"] = f"发现{len(issues)}个潜在问题"
+    
+    return result
+
+def fix_common_code_issues(code, issues):
+    """修复代码中的常见问题"""
+    lines = code.split('\n')
+    
+    # 处理每个发现的问题
+    for issue in issues:
+        if issue["type"] == "undefined_var":
+            line_idx = issue["line"] - 1
+            var_name = issue["var"]
+            
+            # 根据变量类型添加一个合适的定义
+            if var_name == "title":
+                # 在construct方法开始处添加title定义
+                for i, line in enumerate(lines):
+                    if "def construct" in line:
+                        # 找到construct方法的下一行
+                        j = i + 1
+                        while j < len(lines) and (not lines[j].strip() or lines[j].strip().startswith("#")):
+                            j += 1
+                        indent = ' ' * (len(lines[j]) - len(lines[j].lstrip()))
+                        lines.insert(j, f"{indent}# 创建标题\n{indent}{var_name} = Text('数学动画演示', font_size=36)")
+                        break
+            
+            elif var_name == "equation":
+                for i, line in enumerate(lines):
+                    if "def construct" in line:
+                        j = i + 1
+                        while j < len(lines) and (not lines[j].strip() or lines[j].strip().startswith("#")):
+                            j += 1
+                        indent = ' ' * (len(lines[j]) - len(lines[j].lstrip()))
+                        lines.insert(j, f"{indent}# 创建方程\n{indent}{var_name} = MathTex(r'F = G\\frac{{m_1 m_2}}{{r^2}}')")
+                        break
+    
+    return '\n'.join(lines)
+
+def _create_fallback_video(animation_id, animations_dir, output_path, full_output_path, error_message="执行失败", error_details=""):
     """创建一个备选的视频文件，当Manim执行失败时使用"""
     try:
         # 使用PIL创建图像
@@ -539,7 +671,7 @@ def _create_fallback_video(animation_id, animations_dir, output_path, full_outpu
         
         # 主要错误信息
         title = f"Manim执行错误 #{animation_id}"
-        error_msg = f"{error_message}"
+        error_msg = f"{error_message}\n{error_details}"
         note = "请检查代码并重试"
         
         # 处理不同版本PIL的文本尺寸计算
@@ -696,69 +828,3 @@ def get_active_system_prompt(request):
             'success': False,
             'message': '未找到活跃的系统提示词'
         }, status=404)
-
-@login_required
-def edit_system_prompt(request, prompt_id):
-    """编辑系统提示词"""
-    if not request.user.is_staff:
-        return JsonResponse({'success': False, 'message': '权限不足'}, status=403)
-    
-    prompt = get_object_or_404(SystemPrompt, id=prompt_id)
-    
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        prompt_text = request.POST.get('prompt')
-        is_active = request.POST.get('is_active') == 'true'
-        
-        if not name or not prompt_text:
-            return JsonResponse({'success': False, 'message': '名称和提示词内容不能为空'}, status=400)
-        
-        prompt.name = name
-        prompt.prompt = prompt_text
-        prompt.is_active = is_active
-        prompt.save()
-        
-        return JsonResponse({
-            'success': True, 
-            'message': '提示词更新成功',
-            'prompt': {
-                'id': prompt.id,
-                'name': prompt.name,
-                'is_active': prompt.is_active,
-                'updated_at': prompt.updated_at.strftime('%Y-%m-%d %H:%M'),
-            }
-        })
-    
-    # GET请求，返回当前提示词数据
-    return JsonResponse({
-        'success': True,
-        'prompt': {
-            'id': prompt.id,
-            'name': prompt.name,
-            'prompt': prompt.prompt,
-            'is_active': prompt.is_active
-        }
-    })
-
-@login_required
-def delete_system_prompt(request, prompt_id):
-    """删除系统提示词"""
-    if not request.user.is_staff:
-        return JsonResponse({'success': False, 'message': '权限不足'}, status=403)
-    
-    prompt = get_object_or_404(SystemPrompt, id=prompt_id)
-    
-    # 不允许删除活跃的提示词
-    if prompt.is_active:
-        return JsonResponse({'success': False, 'message': '不能删除当前活跃的提示词，请先激活其他提示词'}, status=400)
-    
-    if request.method == 'POST':
-        prompt_name = prompt.name
-        prompt.delete()
-        
-        return JsonResponse({
-            'success': True, 
-            'message': f'提示词 "{prompt_name}" 已成功删除'
-        })
-    
-    return JsonResponse({'success': False, 'message': '不支持此请求方法'}, status=405)

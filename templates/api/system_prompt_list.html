@@ -47,17 +47,11 @@
                                         <td>
                                             <div class="btn-group btn-group-sm">
                                                 <button type="button" class="btn btn-info view-prompt" data-bs-toggle="modal" data-bs-target="#viewPromptModal" data-prompt-id="{{ prompt.id }}" data-prompt-name="{{ prompt.name }}" data-prompt-content="{{ prompt.prompt }}">
-                                                    <i class="fas fa-eye"></i> 查看
-                                                </button>
-                                                <button type="button" class="btn btn-warning edit-prompt" data-bs-toggle="modal" data-bs-target="#editPromptModal" data-prompt-id="{{ prompt.id }}">
-                                                    <i class="fas fa-edit"></i> 编辑
+                                                    查看
                                                 </button>
                                                 {% if not prompt.is_active %}
                                                 <button type="button" class="btn btn-success toggle-prompt" data-prompt-id="{{ prompt.id }}">
-                                                    <i class="fas fa-check"></i> 激活
-                                                </button>
-                                                <button type="button" class="btn btn-danger delete-prompt" data-prompt-id="{{ prompt.id }}" data-prompt-name="{{ prompt.name }}">
-                                                    <i class="fas fa-trash"></i> 删除
+                                                    激活
                                                 </button>
                                                 {% endif %}
                                             </div>
@@ -110,46 +104,6 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                 <button type="button" class="btn btn-primary" id="savePromptBtn">保存</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- 编辑提示词模态框 -->
-<div class="modal fade" id="editPromptModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">编辑系统提示词</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editPromptForm">
-                    {% csrf_token %}
-                    <input type="hidden" id="editPromptId" name="prompt_id">
-                    <div class="mb-3">
-                        <label for="editPromptName" class="form-label">名称</label>
-                        <input type="text" class="form-control" id="editPromptName" name="name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editPromptContent" class="form-label">系统提示词内容</label>
-                        <textarea class="form-control" id="editPromptContent" name="prompt" rows="10" required></textarea>
-                        <div class="form-text">
-                            设置指导AI生成代码的系统提示词，包含要求、风格和约束等。
-                        </div>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="editIsActive" name="is_active">
-                        <label class="form-check-label" for="editIsActive">设为活跃</label>
-                        <div class="form-text">
-                            如果勾选，此提示词将立即生效，之前的活跃提示词将被禁用。
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" id="updatePromptBtn">更新</button>
             </div>
         </div>
     </div>
