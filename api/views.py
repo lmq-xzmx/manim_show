@@ -455,7 +455,6 @@ def clean_manim_code(code):
     """
     清理Manim代码，移除所有非Python内容
     包括Markdown代码块标记、注释和其他非合法Python代码
-    同时检查并修复常见的错误
     """
     # 移除开头的 ```python 或 ``` 标记
     code = re.sub(r'^```(?:python)?\s*\n', '', code, flags=re.MULTILINE)
@@ -494,7 +493,6 @@ def clean_manim_code(code):
         if re.search(r'[^\x00-\x7F]+', line):
             # 只保留ASCII字符
             line = re.sub(r'[^\x00-\x7F]+', '', line)
-        # 保留代码行
         cleaned_lines.append(line)
     
     # 重新组合代码
@@ -504,78 +502,15 @@ def clean_manim_code(code):
     if not cleaned_code.endswith('\n'):
         cleaned_code += '\n'
     
-    # 进行代码修复和改进
-    cleaned_code = fix_common_manim_errors(cleaned_code)
+    # 添加避免LaTeX渲染问题的修复
+    # 替换MathTex为Text，避免使用LaTeX渲染
+    cleaned_code = re.sub(r'MathTex\(r"([^"]+)"\)', r'Text(r"\1")', cleaned_code)
+    cleaned_code = re.sub(r'MathTex\(r\'([^\']+)\'\)', r'Text(r"\1")', cleaned_code)
+    cleaned_code = re.sub(r'Tex\(r"([^"]+)"\)', r'Text(r"\1")', cleaned_code)
+    cleaned_code = re.sub(r'Tex\(r\'([^\']+)\'\)', r'Text(r"\1")', cleaned_code)
     
     print(f"代码清理后的行数: {len(cleaned_lines)}")
     return cleaned_code
-
-def fix_common_manim_errors(code):
-    """修复常见的Manim代码错误"""
-    
-    # 1. 检测并修复未定义变量错误
-    # 查找在construct函数中使用的变量
-    construct_match = re.search(r'def\s+construct\s*\([^)]*\):(.*?)(?:def|\Z)', code, re.DOTALL)
-    if construct_match:
-        construct_code = construct_match.group(1)
-        
-        # 查找 something.to_edge(UP) 模式，检查变量是否定义
-        to_edge_vars = re.findall(r'(\w+)\.to_edge\(', construct_code)
-        for var in to_edge_vars:
-            # 检查变量是否在之前定义过
-            if not re.search(fr'{var}\s*=', construct_code.split(f'{var}.to_edge')[0]):
-                # 变量未定义，添加默认定义
-                var_def = f"\n        # 自动添加缺失的变量定义\n        {var} = Text(\"{var}\")\n"
-                # 在construct第一行后插入定义
-                code = re.sub(r'(def\s+construct\s*\([^)]*\):(?:\s*\n\s+))', r'\1' + var_def, code)
-    
-    # 2. 修复NumberPlane参数问题
-    code = re.sub(r'NumberPlane\([^)]*y_line_frequency\s*=\s*\d+\s*,', 'NumberPlane(', code)
-    code = re.sub(r'NumberPlane\([^)]*x_line_frequency\s*=\s*\d+\s*,', 'NumberPlane(', code)
-    code = re.sub(r'NumberPlane\([^)]*axis_config\s*=\s*{[^}]*},\s*', 'NumberPlane(', code)
-    
-    # 3. 替换不安全的API调用
-    # 使用更兼容的Axes替代NumberPlane(如果存在错误用法)
-    if 'NumberPlane(' in code and ('y_line_frequency' in code or 'x_line_frequency' in code):
-        code = code.replace('NumberPlane(', 'Axes(')
-    
-    # 4. 替换MathTex为Text，避免LaTeX渲染问题
-    code = re.sub(r'MathTex\(r"([^"]+)"\)', r'Text(r"\1")', code)
-    code = re.sub(r'MathTex\(r\'([^\']+)\'\)', r'Text(r"\1")', code)
-    code = re.sub(r'Tex\(r"([^"]+)"\)', r'Text(r"\1")', code)
-    code = re.sub(r'Tex\(r\'([^\']+)\'\)', r'Text(r"\1")', code)
-    
-    # 5. 添加基本错误检查和保护
-    # 确保main class之前没有额外代码
-    class_match = re.search(r'class\s+(\w+)\s*\([^)]*Scene[^)]*\):', code)
-    if class_match:
-        scene_class = class_match.group(1)
-        # 添加基本错误处理
-        error_handler = f"""
-# 添加基本错误处理
-import traceback
-
-class SafeScene:
-    def safe_play(self, *animations, **kwargs):
-        try:
-            self.play(*animations, **kwargs)
-        except Exception as e:
-            print(f"动画播放错误: {{e}}")
-            # 继续而不崩溃
-            
-    def safe_add(self, *mobjects):
-        try:
-            self.add(*mobjects)
-        except Exception as e:
-            print(f"添加对象错误: {{e}}")
-
-"""
-        code = code.replace(f"class {scene_class}(", f"{error_handler}\nclass {scene_class}(")
-        
-        # 替换可能出错的play调用为safe_play
-        code = re.sub(r'self\.play\(', 'self.safe_play(', code)
-        
-    return code
 
 def _create_fallback_video(animation_id, animations_dir, output_path, full_output_path, error_message="执行失败"):
     """创建一个备选的视频文件，当Manim执行失败时使用"""
