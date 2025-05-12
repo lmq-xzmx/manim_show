@@ -1,0 +1,15 @@
+Django==5.2.1
+manim==0.17.3
+asgiref==3.8.1
+sqlparse==0.5.3
+Pillow<10.0,>=9.1
+requests==2.31.0
+python-dotenv==1.0.0
+numpy>=1.21.0
+moviepy==2.1.1
+decorator>=4.0.2
+imageio>=2.5,<3.0
+imageio-ffmpeg>=0.2.0
+proglog<=1.0.0
+tqdm>=4.11.2
+ffmpeg-python==0.2.0 

@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}Manim教学演示工具 - 首页{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h1 class="text-center mb-4">Manim教学演示工具</h1>
+                <p class="lead text-center">
+                    通过自然语言生成数学和科学的可视化教学动画
+                </p>
+                <hr>
+                
+                <div class="mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2>创建您的动画</h2>
+                        {% if user.is_staff %}
+                        <a href="{% url 'api:system_prompt_list' %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-cog"></i> 管理系统提示词
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 系统提示词信息 -->
+                    <div class="alert alert-info mb-3" id="system-prompt-info">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="alert-heading">当前系统提示词</h5>
+                                <p id="prompt-name"><i class="fas fa-spinner fa-spin"></i> 加载中...</p>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-info" id="view-prompt-btn">
+                                查看详情
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <form id="createAnimationForm" class="mt-3">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">标题</label>
+                            <input type="text" class="form-control" id="title" name="title" required placeholder="为您的动画起个名字">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">描述（可选）</label>
+                            <textarea class="form-control" id="description" name="description" rows="2" placeholder="简单描述一下您的动画"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="prompt" class="form-label">自然语言提示词</label>
+                            <textarea class="form-control" id="prompt" name="prompt" rows="4" required placeholder="例如：'画一个半径为2的圆，然后在上面标注半径、直径和周长，最后通过动画展示圆的面积公式'"></textarea>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">生成动画</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="alert alert-info mt-4">
+                    <h4 class="alert-heading">使用技巧</h4>
+                    <ul>
+                        <li>尽量使用清晰、具体的描述</li>
+                        <li>指明动画中应该包含的元素和步骤</li>
+                        <li>如果需要特定颜色或效果，请在描述中明确说明</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-5">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h3>简单易用</h3>
+                        <p>无需编程知识，只需描述您想要的动画，AI将为您生成代码</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h3>教学专注</h3>
+                        <p>专为中小学教师设计，生成的动画符合教学需求和学生理解水平</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h3>高质量输出</h3>
+                        <p>基于Manim引擎，生成专业级别的数学和科学可视化动画</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 系统提示词详情模态框 -->
+<div class="modal fade" id="promptDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">系统提示词详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="detail-prompt-name"></h4>
+                <hr>
+                <pre id="detail-prompt-content" class="bg-light p-3" style="white-space: pre-wrap;"></pre>
+                <p class="text-muted">最后更新时间: <span id="detail-prompt-updated"></span></p>
+            </div>
+            <div class="modal-footer">
+                {% if user.is_staff %}
+                <a href="{% url 'api:system_prompt_list' %}" class="btn btn-primary">管理系统提示词</a>
+                {% endif %}
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 加载活跃的系统提示词信息
+        fetch('/api/system-prompts/active/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const prompt = data.prompt;
+                    document.getElementById('prompt-name').innerHTML = `<strong>${prompt.name}</strong>`;
+                    document.getElementById('detail-prompt-name').textContent = prompt.name;
+                    document.getElementById('detail-prompt-content').textContent = prompt.content;
+                    document.getElementById('detail-prompt-updated').textContent = prompt.updated_at;
+                } else {
+                    document.getElementById('prompt-name').textContent = '默认系统提示词';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('prompt-name').textContent = '无法加载系统提示词信息';
+            });
+        
+        // 打开系统提示词详情模态框
+        const viewPromptBtn = document.getElementById('view-prompt-btn');
+        viewPromptBtn.addEventListener('click', function() {
+            const modal = new bootstrap.Modal(document.getElementById('promptDetailModal'));
+            modal.show();
+        });
+        
+        const form = document.getElementById('createAnimationForm');
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                prompt: document.getElementById('prompt').value
+            };
+            
+            // 显示加载状态
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 生成中...';
+            submitBtn.disabled = true;
+            
+            // 发送请求到API
+            fetch('/api/generate-animation/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (response.redirected) {
+                    // 用户未登录，被重定向到登录页面
+                    window.location.href = response.url;
+                    return null;
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data) return; // 用户被重定向
+                
+                if (data.error) {
+                    alert('错误: ' + data.error);
+                } else {
+                    // 跳转到动画详情页
+                    window.location.href = '/animations/' + data.id + '/';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('生成动画时发生错误，请稍后重试。');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
+            });
+        });
+        
+        // 获取CSRF Token
+        function getCSRFToken() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        }
+    });
+</script>
+{% endblock %} 

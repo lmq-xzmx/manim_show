@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}错误 - Manim教学演示工具{% endblock %}
+
+{% block content %}
+<div class="container text-center">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h1 class="display-4 text-danger">出错了！</h1>
+            <p class="lead">{{ message }}</p>
+            <hr>
+            <div class="mt-4">
+                <a href="{% url 'core:home' %}" class="btn btn-primary">返回首页</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

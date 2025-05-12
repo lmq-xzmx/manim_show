@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Manim教学演示工具 - 关于{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h1 class="text-center mb-4">关于 Manim教学演示工具</h1>
+                
+                <div class="mt-4">
+                    <h2>项目介绍</h2>
+                    <p>
+                        Manim教学演示工具是一个专为中小学教师设计的教学辅助工具，旨在帮助教师快速创建高质量的数学和科学可视化动画，
+                        以提升课堂教学效果。本工具结合了先进的人工智能技术和Manim动画引擎，使得教师无需编程知识，
+                        仅通过自然语言描述即可生成专业级别的教学动画。
+                    </p>
+                </div>
+                
+                <div class="mt-4">
+                    <h2>技术架构</h2>
+                    <p>
+                        本工具基于以下技术构建：
+                    </p>
+                    <ul>
+                        <li><strong>Django</strong> - 作为Web应用框架，提供稳定高效的后端支持</li>
+                        <li><strong>Manim</strong> - 数学动画引擎，由3Blue1Brown创建，用于生成高质量数学动画</li>
+                        <li><strong>大型语言模型</strong> - 负责将自然语言转换为Manim代码</li>
+                        <li><strong>Bootstrap 5</strong> - 前端框架，提供响应式设计</li>
+                    </ul>
+                </div>
+                
+                <div class="mt-4">
+                    <h2>使用指南</h2>
+                    <p>
+                        使用本工具非常简单：
+                    </p>
+                    <ol>
+                        <li>在首页输入您想要创建的动画的自然语言描述</li>
+                        <li>系统会将您的描述转换为Manim代码并生成动画</li>
+                        <li>生成的动画可以直接在浏览器中查看，也可以下载保存</li>
+                        <li>您还可以查看生成的Manim代码，以便进一步学习和修改</li>
+                    </ol>
+                </div>
+                
+                <div class="mt-4">
+                    <h2>联系我们</h2>
+                    <p>
+                        如果您有任何问题、建议或反馈，请通过以下方式联系我们：
+                    </p>
+                    <p>
+                        <i class="bi bi-envelope"></i> 邮箱：contact@manim-edu.example.com
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
